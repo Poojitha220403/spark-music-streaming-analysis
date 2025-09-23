@@ -119,9 +119,9 @@ output/
 
 ---
 
-### Task 3: Genre Loyalty Scores (>0.8)
+### Task 3: Genre Loyalty Scores (>0.5)
 
-**Description:** Calculate the proportion of plays in each user’s favorite genre. Keep only users with loyalty > 0.8.
+**Description:** Calculate the proportion of plays in each user’s favorite genre. Keep only users with loyalty > 0.5.
 
 **Output Folder:** `output/genre_loyalty_scores/`
 
@@ -131,7 +131,11 @@ output/
 +--------+-----+---------------+-----------+-------------+
 |user_id |genre|fav_genre_count|total_plays|loyalty_score|
 +--------+-----+---------------+-----------+-------------+
-|user_24 |Jazz |              5|          6|   0.83333333|
+|user_28|Classical|4              |6          |0.6666666666666666|
+|user_30|Classical|4              |6          |0.6666666666666666|
+|user_33|Classical|3              |5          |0.6               |
+|user_39|Hip-Hop  |4              |5          |0.8               |
+
 ```
 
 ---
@@ -223,5 +227,5 @@ Before running, ensure the following are installed:
 | ---------------------------------------------------------------- | -------------------------------- | ---------------------------------------|
 | `ModuleNotFoundError: No module named 'pyspark'`                 | PySpark not installed            | Run `pip install pyspark pandas`       |
 | `Could not find a version that satisfies the requirement Python` | Wrong entry in Requirements file | Replace with `pyspark` and `pandas`    |
-| Empty Task 3 results                                             | Random dataset not biased        | Updated `datagen.py` to assign loyal genres to some users |
+| Empty Task 3 results                                             | Random dataset not biased        | Updated to `>0.5`                      |
 
