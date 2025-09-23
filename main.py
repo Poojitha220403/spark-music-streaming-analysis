@@ -55,9 +55,9 @@ user_fav = user_fav_genre.select("user_id", "genre", col("count").alias("fav_gen
 # Loyalty score = fav_genre_count / total_plays
 loyalty = user_fav.join(user_total, on="user_id") \
     .withColumn("loyalty_score", col("fav_genre_count") / col("total_plays")) \
-    .filter(col("loyalty_score") > 0.8)
+    .filter(col("loyalty_score") > 0.5)
 
-print("\n===== Task 3: Genre Loyalty Scores (>0.8) =====")
+print("\n===== Task 3: Genre Loyalty Scores (>0.5) =====")
 loyalty.show(truncate=False)
 
 loyalty.write.mode("overwrite").csv("output/genre_loyalty_scores")
