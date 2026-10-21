@@ -1,231 +1,69 @@
-# Music Streaming Analysis Using Spark Structured APIs
+# Spark Music Streaming Analysis
 
-## Overview
+Analyzes listener behavior for a music-streaming service with **PySpark Structured APIs** (DataFrames, joins, window functions). It finds each user's favorite genre, average listen time per song, genre-loyalty scores and late-night listeners across 1,000 listening events.
 
-This project analyzes **music listener behavior** using Apache Spark Structured APIs.
-We process two datasets (listening logs + song metadata) to extract insights such as:
+![PySpark](https://img.shields.io/badge/PySpark-DataFrames%20·%20Window%20functions-E25A1C?logo=apachespark&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
 
-* Favorite genres per user
-* Average listen time per song
-* Genre loyalty scores
-* Night owl user detection
+## Problem
 
-The project was completed as part of **ITCS 6190/8190 – Cloud Computing for Data Analysis (Fall 2025)**.
+Streaming platforms personalize recommendations and marketing from raw play logs. Turning millions of `(user, song, timestamp, duration)` events into segments like "loyal jazz fans" or "night owls" is a distributed join-and-aggregate problem, which is what Spark is built for.
 
----
+## Architecture
 
-## Dataset Description
-
-Datasets are generated using `datagen.py`:
-
-1. **listening\_logs.csv**
-
-   * `user_id` → Unique ID of the user
-   * `song_id` → Unique ID of the song
-   * `timestamp` → Date & time the song was played
-   * `duration_sec` → Duration in seconds
-
-2. **songs\_metadata.csv**
-
-   * `song_id` → Unique ID of the song
-   * `title` → Song title
-   * `artist` → Artist name
-   * `genre` → Song genre (Pop, Rock, Jazz, Classical, Hip-Hop)
-   * `mood` → Mood of the song (Happy, Sad, Energetic, Chill)
-
-Each dataset contains **at least 100 records**.
-
----
-
-## Repository Structure
-
-```
-HandsOn6/
-│── datagen.py          # Generates input datasets
-│── main.py             # Spark analysis tasks
-│── README.md           # Documentation
-│── output/             # Results folder
+```mermaid
+flowchart LR
+    G[datagen.py] --> L[(listening_logs.csv<br/>1,000 plays)]
+    G --> S[(songs_metadata.csv<br/>50 songs)]
+    L --> J[Spark inner join<br/>on song_id]
+    S --> J
+    J --> T1[Task 1: favorite genre<br/>groupBy + row_number window]
+    J --> T2[Task 2: avg listen time<br/>per song]
+    T1 --> T3[Task 3: genre loyalty<br/>fav plays / total plays > 0.5]
+    J --> T4[Task 4: night owls<br/>plays 00:00–05:00]
+    T1 & T2 & T3 & T4 --> O[(output/*/ CSV)]
 ```
 
----
+## Tech stack
 
-## Output Directory Structure
+| Area | Tools |
+|---|---|
+| Processing | PySpark: DataFrame API, `Window.partitionBy().orderBy()`, `row_number()`, joins, aggregations |
+| Data | Synthetic CSVs from `datagen.py` (pandas) |
 
-Results are saved into structured subfolders:
+## How to run
 
-```
-output/
- ├── user_favorite_genres/
- ├── avg_listen_time_per_song/
- ├── genre_loyalty_scores/
- └── night_owl_users/
-```
-
----
-
-## Tasks and Outputs
-
-### Task 1: User Favorite Genre
-
-**Description:** Identify the most frequently played genre for each user.
-
-**Output Folder:** `output/user_favorite_genres/`
-
-**Results:**
-
-```
-+--------+---------+-----+
-|user_id | genre   |count|
-+--------+---------+-----+
-|user_1  | Rock    |    3|
-|user_10 | Rock    |    3|
-|user_100| Rock    |    3|
-|user_11 | Classical|   4|
-|user_12 | Pop     |    7|
-|user_13 | Hip-Hop |    4|
-|user_14 | Rock    |    5|
-|user_15 | Pop     |    4|
-|user_16 | Pop     |    2|
-|user_17 | Hip-Hop |    5|
-... (total 100 users)
+```bash
+pip install -r requirements.txt     # pyspark, pandas (Java 17 is needed for Spark)
+python3 datagen.py                  # regenerate listening_logs.csv + songs_metadata.csv
+spark-submit main.py                # or: python3 main.py
 ```
 
----
+Results are written to `output/<task>/part-*.csv`.
 
-### Task 2: Average Listen Time per Song
+## Results
 
-**Description:** Compute the average duration (in seconds) that each song was played.
+From the committed run ([`output/`](output/)):
 
-**Output Folder:** `output/avg_listen_time_per_song/`
+| Task | Result |
+|---|---|
+| 1. Favorite genre per user | 100 users. Classical is the most common favorite (31 users), then Jazz (23), Rock (20), Hip-Hop (15) and Pop (11) |
+| 2. Average listen time | 50 songs; longest average is `song_19` at **201.3 s** |
+| 3. Genre loyalty > 0.5 | **9 loyal users**. Top: `user_39` (Hip-Hop, 0.80) and `user_75` (Jazz, 0.75) |
+| 4. Night owls (00:00–05:00) | **85 users** played at least one song after midnight |
 
-**Results:**
+## Screenshots
 
-```
-+--------+-------------+--------+-----------------+
-|song_id | title       | artist | avg_duration_sec|
-+--------+-------------+--------+-----------------+
-|song_29 | Title_song_29|Artist_20|          182.25|
-|song_21 | Title_song_21|Artist_6 |          160.0 |
-|song_37 | Title_song_37|Artist_18|188.590909090909|
-|song_30 | Title_song_30|Artist_16|          171.625|
-|song_12 | Title_song_12|Artist_13|166.222222222222|
-|song_22 | Title_song_22|Artist_7 |158.789473684210|
-|song_17 | Title_song_17|Artist_1 |          163.0 |
-|song_33 | Title_song_33|Artist_2 |158.882352941176|
-|song_15 | Title_song_15|Artist_12|146.727272727272|
-|song_2  | Title_song_2 |Artist_13|178.823529411764|
-... (50 rows total)
-```
+Not applicable: the outputs are the CSV tables above.
 
----
-
-### Task 3: Genre Loyalty Scores (>0.5)
-
-**Description:** Calculate the proportion of plays in each user’s favorite genre. Keep only users with loyalty > 0.5.
-
-**Output Folder:** `output/genre_loyalty_scores/`
-
-**Results:**
+## Repo structure
 
 ```
-+--------+-----+---------------+-----------+-------------+
-|user_id |genre|fav_genre_count|total_plays|loyalty_score|
-+--------+-----+---------------+-----------+-------------+
-|user_28|Classical|4              |6          |0.6666666666666666|
-|user_30|Classical|4              |6          |0.6666666666666666|
-|user_33|Classical|3              |5          |0.6               |
-|user_39|Hip-Hop  |4              |5          |0.8               |
-
+.
+├── datagen.py            # synthetic logs + song metadata
+├── main.py               # the four Spark analysis tasks
+├── listening_logs.csv
+├── songs_metadata.csv
+├── output/               # task results (CSV)
+└── requirements.txt
 ```
-
----
-
-### Task 4: Night Owl Users (12 AM – 5 AM)
-
-**Description:** Extract users who frequently listen to songs between midnight and 5 AM.
-
-**Output Folder:** `output/night_owl_users/`
-
-**Results:**
-
-```
-+--------+
-|user_id |
-+--------+
-|user_58 |
-|user_94 |
-|user_14 |
-|user_56 |
-|user_22 |
-|user_68 |
-|user_86 |
-|user_97 |
-|user_65 |
-|user_47 |
-... (85 users in total)
-```
-
----
-
-## Execution Instructions
-
-### *1. Prerequisites*
-
-Before running, ensure the following are installed:
-
-1. **Python 3.x**
-
-   ```bash
-   python3 --version
-   ```
-2. **PySpark**
-
-   ```bash
-   pip install pyspark pandas
-   ```
-3. **Apache Spark** (optional if running via PySpark in Codespaces)
-
-   ```bash
-   spark-submit --version
-   ```
-
----
-
-### *2. Running the Analysis Tasks*
-
-#### Running in Codespaces or Locally
-
-1. **Generate Input Data**
-
-   ```bash
-   python3 datagen.py
-   ```
-
-2. **Run Spark Analysis**
-
-   ```bash
-   python3 main.py
-   ```
-
-   or (if Spark is installed locally):
-
-   ```bash
-   spark-submit main.py
-   ```
-
-3. **Verify Outputs**
-
-   ```bash
-   ls output/
-   ```
-
----
-
-## Errors and Resolutions
-
-| Error                                                            | Cause                            | Resolution                             |
-| ---------------------------------------------------------------- | -------------------------------- | ---------------------------------------|
-| `ModuleNotFoundError: No module named 'pyspark'`                 | PySpark not installed            | Run `pip install pyspark pandas`       |
-| `Could not find a version that satisfies the requirement Python` | Wrong entry in Requirements file | Replace with `pyspark` and `pandas`    |
-| Empty Task 3 results                                             | Random dataset not biased        | Updated to `>0.5`                      |
-
