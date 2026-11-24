@@ -4,6 +4,7 @@ Analyzes listener behavior for a music-streaming service with **PySpark Structur
 
 ![PySpark](https://img.shields.io/badge/PySpark-DataFrames%20·%20Window%20functions-E25A1C?logo=apachespark&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
+[![CI](https://github.com/Poojitha220403/spark-music-streaming-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/Poojitha220403/spark-music-streaming-analysis/actions/workflows/ci.yml)
 
 ## Problem
 
